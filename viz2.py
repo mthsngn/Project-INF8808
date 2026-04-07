@@ -5,46 +5,30 @@ Exécution :
     python viz2.py
 """
 
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from dash import Dash, dcc, html, Input, Output
 
-# -----------------------------
-# Données
-# -----------------------------
-def load_and_preprocess_data(event_results_path: str) -> pd.DataFrame:
-    df = pd.read_csv(event_results_path)
 
-    selected_sports = ["Biathlon", "Ice Hockey", "Speed Skating"]
-    df = df[df["sport"].isin(selected_sports)].copy()
+# Configuration
+SELECTED_SPORTS = ["Biathlon", "Ice Hockey", "Speed Skating"]
 
-    df = df[
-        [
-            "sport",
-            "medal",
-            "country_noc",
-            "athlete",
-            "athlete_id",
-        ]
-    ].copy()
+SPORT_OPTIONS = [
+    {"label": "Tous", "value": "All"},
+    {"label": "Biathlon", "value": "Biathlon"},
+    {"label": "Ice Hockey", "value": "Ice Hockey"},
+    {"label": "Speed Skating", "value": "Speed Skating"},
+]
 
-    # On garde seulement les lignes ayant un pays et un sport
-    df = df.dropna(subset=["sport", "country_noc"])
+MEDAL_ORDER = ["Gold", "Silver", "Bronze"]
 
-    # Uniformiser les médailles
-    df["medal"] = df["medal"].fillna("None")
+MEDAL_COLORS = {
+    "Gold": "#D4AF37",
+    "Silver": "#C0C0C0",
+    "Bronze": "#CD7F32",
+}
 
-    # Nettoyage léger des codes pays
-    df["country_noc"] = df["country_noc"].astype(str).str.strip()
-
-    return df
-
-
-# -----------------------------
-# Config
-# -----------------------------
-COUNTRY_NAMES = { # code -> libellé complet TO DO
+COUNTRY_NAMES = {
     "CAN": "Canada",
     "USA": "United States",
     "FRA": "France",
@@ -61,46 +45,209 @@ COUNTRY_NAMES = { # code -> libellé complet TO DO
     "AUT": "Austria",
 }
 
-SPORT_OPTIONS = [
-    {"label": "Tous", "value": "All"},
-    {"label": "Biathlon", "value": "Biathlon"},
-    {"label": "Ice Hockey", "value": "Ice Hockey"},
-    {"label": "Speed Skating", "value": "Speed Skating"},
-]
 
-MEDAL_ORDER = ["Gold", "Silver", "Bronze"]
-MEDAL_COLORS = {
-    "Gold": "#D4AF37",
-    "Silver": "#C0C0C0",
-    "Bronze": "#CD7F32",
-}
+# Helpers
+
+def _id(prefix: str, name: str) -> str:
+    return f"{prefix}-{name}"
 
 
-# -----------------------------
-# Filtrage
-# -----------------------------
+def _validate_columns(df: pd.DataFrame, required_columns: list[str], df_name: str) -> None:
+    missing = set(required_columns) - set(df.columns)
+    if missing:
+        raise ValueError(f"Colonnes manquantes dans {df_name}: {sorted(missing)}")
+
+
+def make_empty_figure(message: str) -> go.Figure:
+    fig = go.Figure()
+    fig.update_layout(
+        template="plotly_white",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=40, r=20, t=40, b=40),
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False),
+        annotations=[
+            dict(
+                text=message,
+                x=0.5,
+                y=0.5,
+                xref="paper",
+                yref="paper",
+                showarrow=False,
+                font=dict(size=15, color="#6B7280"),
+            )
+        ],
+    )
+    return fig
+
+
+def apply_common_layout(fig: go.Figure, title: str, x_title: str = "", y_title: str = "") -> go.Figure:
+    fig.update_layout(
+        title=dict(text=title, x=0.02, xanchor="left"),
+        xaxis_title=x_title,
+        yaxis_title=y_title,
+        template="plotly_white",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(family="Inter, Arial, sans-serif", color="#1F2937"),
+        margin=dict(l=55, r=25, t=60, b=60),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1.0,
+            bgcolor="rgba(0,0,0,0)",
+        ),
+    )
+
+    fig.update_xaxes(
+        showline=True,
+        linecolor="#D1D5DB",
+        gridcolor="#E5E7EB",
+        zeroline=False,
+    )
+    fig.update_yaxes(
+        showline=True,
+        linecolor="#D1D5DB",
+        gridcolor="#E5E7EB",
+        zeroline=False,
+    )
+    return fig
+
+
+def get_country_label(code: str) -> str:
+    if pd.isna(code):
+        return "Unknown"
+    code = str(code).strip().upper()
+    return COUNTRY_NAMES.get(code, code)
+
+
+
+# Chargement et prétraitement
+
+def load_and_preprocess_data(event_results_path: str) -> pd.DataFrame:
+    df = pd.read_csv(event_results_path)
+
+    _validate_columns(
+        df,
+        ["sport", "medal", "country_noc"],
+        "event_results",
+    )
+
+    optional_columns = [
+        "athlete",
+        "athlete_id",
+        "edition_id",
+        "event",
+        "result_id",
+    ]
+
+    keep_columns = ["sport", "medal", "country_noc"] + [
+        col for col in optional_columns if col in df.columns
+    ]
+
+    df = df[keep_columns].copy()
+    df = df[df["sport"].isin(SELECTED_SPORTS)].copy()
+    df = df.dropna(subset=["sport", "country_noc"]).copy()
+
+    df["country_noc"] = df["country_noc"].astype(str).str.strip().str.upper()
+    df["medal"] = df["medal"].fillna("None").astype(str).str.strip()
+    df["medal"] = df["medal"].replace({"": "None"})
+    df["country_name"] = df["country_noc"].map(get_country_label)
+
+    # Identifiant d'unité de médaille pour éviter le surcomptage
+    if "result_id" in df.columns:
+        df["medal_unit_id"] = (
+            df["sport"].astype(str)
+            + "|"
+            + df["country_noc"].astype(str)
+            + "|"
+            + df["medal"].astype(str)
+            + "|"
+            + df["result_id"].astype(str)
+        )
+    elif {"edition_id", "event"}.issubset(df.columns):
+        df["medal_unit_id"] = (
+            df["sport"].astype(str)
+            + "|"
+            + df["country_noc"].astype(str)
+            + "|"
+            + df["medal"].astype(str)
+            + "|"
+            + df["edition_id"].astype(str)
+            + "|"
+            + df["event"].astype(str)
+        )
+    elif "athlete_id" in df.columns:
+        df["medal_unit_id"] = (
+            df["sport"].astype(str)
+            + "|"
+            + df["country_noc"].astype(str)
+            + "|"
+            + df["medal"].astype(str)
+            + "|"
+            + df["athlete_id"].astype(str)
+        )
+    else:
+        df["medal_unit_id"] = (
+            df["sport"].astype(str)
+            + "|"
+            + df["country_noc"].astype(str)
+            + "|"
+            + df["medal"].astype(str)
+        )
+
+    return df
+
+
+
+# Filtres
+
 def apply_sport_filter_for_medals(df: pd.DataFrame, selected_sport: str) -> pd.DataFrame:
-    dff = df[df["medal"].isin(["Gold", "Silver", "Bronze"])].copy()
+    dff = df[df["medal"].isin(MEDAL_ORDER)].copy()
 
     if selected_sport != "All":
-        dff = dff[dff["sport"] == selected_sport]
+        dff = dff[dff["sport"] == selected_sport].copy()
 
     return dff
 
 
-# -----------------------------
-# Figures
-# -----------------------------
-def make_choropleth_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
+
+# Agrégation
+
+def aggregate_country_medals(df: pd.DataFrame, selected_sport: str) -> pd.DataFrame:
     dff = apply_sport_filter_for_medals(df, selected_sport)
 
+    if dff.empty:
+        return pd.DataFrame(columns=["country_noc", "country_name", "medal", "count"])
+
+    dff = dff[["country_noc", "country_name", "medal", "medal_unit_id"]].drop_duplicates().copy()
+
     agg = (
-        dff.groupby("country_noc", as_index=False)
+        dff.groupby(["country_noc", "country_name", "medal"], as_index=False)
         .size()
-        .rename(columns={"size": "medals"})
+        .rename(columns={"size": "count"})
     )
 
-    agg["country_name"] = agg["country_noc"].map(COUNTRY_NAMES)
+    return agg
+
+
+
+# Figures
+
+def make_choropleth_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
+    agg = aggregate_country_medals(df, selected_sport)
+
+    if agg.empty:
+        return make_empty_figure("Aucune médaille disponible pour cette carte.")
+
+    totals = (
+        agg.groupby(["country_noc", "country_name"], as_index=False)["count"]
+        .sum()
+        .rename(columns={"count": "medals"})
+    )
 
     pink_scale = [
         [0.0, "#fde0ef"],
@@ -111,16 +258,14 @@ def make_choropleth_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
         [1.0, "#7a0177"],
     ]
 
-    max_z = max(1, int(agg["medals"].max())) if not agg.empty else 1
+    max_z = max(1, int(totals["medals"].max()))
 
-    fig = go.Figure()
-
-    fig.add_trace(
+    fig = go.Figure(
         go.Choropleth(
-            locations=agg["country_noc"] if not agg.empty else [],
-            z=agg["medals"] if not agg.empty else [],
+            locations=totals["country_noc"],
+            z=totals["medals"],
             locationmode="ISO-3",
-            text=agg["country_name"] if not agg.empty else [],
+            text=totals["country_name"],
             colorscale=pink_scale,
             zmin=0,
             zmax=max_z,
@@ -133,12 +278,13 @@ def make_choropleth_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
 
     title = "Carte géographique des médailles"
     if selected_sport != "All":
-        title += f" - {selected_sport}"
+        title += f" — {selected_sport}"
 
     fig.update_layout(
-        title=title,
-        margin=dict(l=20, r=20, t=70, b=20),
+        title=dict(text=title, x=0.02, xanchor="left"),
         template="plotly_white",
+        paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=20, r=20, t=60, b=20),
         geo=dict(
             projection_type="natural earth",
             showframe=False,
@@ -147,12 +293,12 @@ def make_choropleth_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
             showcountries=True,
             countrycolor="white",
             showland=True,
-            landcolor="#eaf1f8",
+            landcolor="#EAF1F8",
             showocean=True,
-            oceancolor="#c7dff2",
+            oceancolor="#C7DFF2",
             showlakes=True,
-            lakecolor="#c7dff2",
-            bgcolor="#c7dff2",
+            lakecolor="#C7DFF2",
+            bgcolor="rgba(0,0,0,0)",
         ),
     )
 
@@ -160,63 +306,50 @@ def make_choropleth_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
 
 
 def make_barchart_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
-    dff = apply_sport_filter_for_medals(df, selected_sport)
+    agg = aggregate_country_medals(df, selected_sport)
 
-    if dff.empty:
-        fig = go.Figure()
-        fig.update_layout(
-            title="Distribution des médailles par pays",
-            xaxis_title="Pays",
-            yaxis_title="Nombre de médailles",
-            template="plotly_white",
-            margin=dict(l=50, r=30, t=70, b=80),
-        )
-        return fig
-
-    agg = (
-        dff.groupby(["country_noc", "medal"], as_index=False)
-        .size()
-        .rename(columns={"size": "count"})
-    )
-
-    all_countries = sorted(dff["country_noc"].unique().tolist())
-    full_index = pd.MultiIndex.from_product(
-        [all_countries, MEDAL_ORDER],
-        names=["country_noc", "medal"]
-    )
-
-    agg = (
-        agg.set_index(["country_noc", "medal"])
-        .reindex(full_index, fill_value=0)
-        .reset_index()
-    )
-
-    agg["country_name"] = agg["country_noc"].map(COUNTRY_NAMES)
+    if agg.empty:
+        return make_empty_figure("Aucune médaille disponible pour ce graphique.")
 
     totals = (
-        agg.groupby("country_noc", as_index=False)["count"]
+        agg.groupby(["country_noc", "country_name"], as_index=False)["count"]
         .sum()
         .rename(columns={"count": "total_medals"})
     )
 
-    agg = agg.merge(totals, on="country_noc", how="left")
-
     country_order = (
-        totals.sort_values("total_medals", ascending=False)["country_noc"].tolist()
+        totals.sort_values(["total_medals", "country_name"], ascending=[False, True])["country_noc"]
+        .tolist()
     )
 
-    agg["country_noc"] = pd.Categorical(
-        agg["country_noc"],
+    all_countries = totals[["country_noc", "country_name"]].drop_duplicates().copy()
+
+    full_index = pd.MultiIndex.from_product(
+        [country_order, MEDAL_ORDER],
+        names=["country_noc", "medal"],
+    )
+
+    agg_full = (
+        agg[["country_noc", "medal", "count"]]
+        .set_index(["country_noc", "medal"])
+        .reindex(full_index, fill_value=0)
+        .reset_index()
+    )
+
+    agg_full = agg_full.merge(all_countries, on="country_noc", how="left")
+    agg_full = agg_full.merge(totals, on=["country_noc", "country_name"], how="left")
+
+    agg_full["country_noc"] = pd.Categorical(
+        agg_full["country_noc"],
         categories=country_order,
         ordered=True,
     )
-
-    agg = agg.sort_values(["country_noc", "medal"])
+    agg_full = agg_full.sort_values(["country_noc", "medal"])
 
     fig = go.Figure()
 
     for medal in MEDAL_ORDER:
-        dm = agg[agg["medal"] == medal]
+        dm = agg_full[agg_full["medal"] == medal].copy()
 
         fig.add_trace(
             go.Bar(
@@ -224,34 +357,32 @@ def make_barchart_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
                 y=dm["count"],
                 name=medal,
                 marker_color=MEDAL_COLORS[medal],
-                customdata=np.stack(
-                    [dm["country_noc"].astype(str), dm["total_medals"]],
-                    axis=-1,
-                ),
+                customdata=dm[["country_noc", "total_medals"]],
                 hovertemplate=(
                     "<b>%{x}</b><br>"
                     f"Type: {medal}<br>"
                     "Nombre de médailles: %{y}<br>"
-                    "Total du pays: %{customdata[1]}"
-                    "<extra></extra>"
+                    "Total du pays: %{customdata[1]}<extra></extra>"
                 ),
             )
         )
 
     title = "Distribution des médailles par pays"
     if selected_sport != "All":
-        title += f" - {selected_sport}"
+        title += f" — {selected_sport}"
+
+    fig = apply_common_layout(
+        fig,
+        title=title,
+        x_title="Pays",
+        y_title="Nombre de médailles",
+    )
 
     fig.update_layout(
-        title=title,
-        xaxis_title="Pays",
-        yaxis_title="Nombre de médailles",
         barmode="group",
-        legend_title_text="Type de médaille",
-        margin=dict(l=50, r=30, t=70, b=90),
         bargap=0.18,
         bargroupgap=0.08,
-        template="plotly_white",
+        legend_title_text="Type de médaille",
     )
 
     fig.update_xaxes(
@@ -259,7 +390,6 @@ def make_barchart_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
         tickfont=dict(size=11),
         automargin=True,
     )
-
     fig.update_yaxes(
         tickfont=dict(size=11),
         rangemode="tozero",
@@ -268,107 +398,118 @@ def make_barchart_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
     return fig
 
 
-# -----------------------------
-# App Dash
-# -----------------------------
-df = load_and_preprocess_data(
-    event_results_path="data/Olympic_Athlete_Event_Results.csv"
-)
-app = Dash(__name__)
 
-card_style = {
-    "backgroundColor": "white",
-    "border": "1px solid #e6e6e6",
-    "borderRadius": "12px",
-    "padding": "16px",
-    "boxShadow": "0 1px 4px rgba(0,0,0,0.06)",
-}
+# Layout 
 
-section_title_style = {
-    "margin": "0 0 12px 0",
-    "fontSize": "20px",
-    "fontWeight": "700",
-}
+def create_viz2_layout(prefix: str = "viz2") -> html.Section:
+    return html.Section(
+        className="section-block",
+        children=[
+            html.Div(
+                className="section-header",
+                children=[
+                    html.H2("Facteurs géographiques et performance olympique"),
+                    html.P(
+                        "Comparer les pays médaillés et visualiser leur répartition "
+                        "géographique selon le sport sélectionné."
+                    ),
+                ],
+            ),
 
-section_subtitle_style = {
-    "margin": "0 0 14px 0",
-    "fontSize": "13px",
-    "color": "#666",
-}
+            html.Div(
+                className="filters-zone",
+                children=[
+                    html.Div(
+                        className="filter-item",
+                        children=[
+                            html.Label("Sport"),
+                            dcc.Dropdown(
+                                id=_id(prefix, "sport-filter"),
+                                options=SPORT_OPTIONS,
+                                value="All",
+                                clearable=False,
+                            ),
+                        ],
+                    ),
+                ],
+            ),
 
-app.layout = html.Div(
-    style={
-        "padding": "24px",
-        "fontFamily": "Arial, sans-serif",
-        "backgroundColor": "#f7f8fa",
-        "maxWidth": "1100px",
-        "margin": "0 auto",
-    },
-    children=[
-        html.H2("Répartition géographique des médailles", style={"marginBottom": "18px"}),
-
-        html.Div(
-            style=card_style,
-            children=[
-                html.H3("Pays et types de médailles", style=section_title_style),
-                html.Div(
-                    style={"marginBottom": "18px"},
-                    children=[
-                        html.Label(
-                            "Sport",
-                            style={"fontWeight": "bold", "display": "block", "marginBottom": "8px"},
-                        ),
-                        dcc.RadioItems(
-                            id="sport-filter",
-                            options=SPORT_OPTIONS,
-                            value="All",
-                            inline=True,
-                            inputStyle={"marginRight": "6px", "marginLeft": "12px"},
-                        ),
-                    ],
-                ),
-
-                # Bar chart en premier
-                html.Div(
-                    style={"marginBottom": "24px"},
-                    children=[
-                        dcc.Graph(
-                            id="fig4-barchart",
-                            config={"displayModeBar": False},
-                            style={"height": "520px"},
-                        )
-                    ],
-                ),
-
-                # Carte en dessous
-                html.Div(
-                    children=[
-                        dcc.Graph(
-                            id="fig4-map",
-                            config={"displayModeBar": False},
-                            style={"height": "520px"},
-                        )
-                    ],
-                ),
-            ],
-        ),
-    ],
-)
+            html.Div(
+                className="geo-grid",
+                children=[
+                    html.Article(
+                        className="viz-card",
+                        children=[
+                            html.Div(
+                                className="viz-card-header",
+                                children=[
+                                    html.H3("Distribution des médailles par pays"),
+                                    html.P("Comparer le nombre de médailles d’or, d’argent et de bronze."),
+                                ],
+                            ),
+                            dcc.Graph(
+                                id=_id(prefix, "bar"),
+                                config={"displayModeBar": False},
+                                style={"height": "460px"},
+                            ),
+                        ],
+                    ),
+                    html.Article(
+                        className="viz-card viz-card-map",
+                        children=[
+                            html.Div(
+                                className="viz-card-header",
+                                children=[
+                                    html.H3("Carte géographique des médailles"),
+                                    html.P("Observer les zones géographiques les plus représentées."),
+                                ],
+                            ),
+                            dcc.Graph(
+                                id=_id(prefix, "map"),
+                                config={"displayModeBar": False},
+                                style={"height": "500px"},
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    )
 
 
-# -----------------------------
-# Callback
-# -----------------------------
-@app.callback(
-    Output("fig4-map", "figure"),
-    Output("fig4-barchart", "figure"),
-    Input("sport-filter", "value"),
-)
-def update_figures(selected_sport):
-    fig_map = make_choropleth_figure(df, selected_sport=selected_sport)
-    fig_bar = make_barchart_figure(df, selected_sport=selected_sport)
-    return fig_map, fig_bar
+
+# Callbacks 
+
+def register_viz2_callbacks(app: Dash, df: pd.DataFrame, prefix: str = "viz2") -> None:
+    @app.callback(
+        Output(_id(prefix, "map"), "figure"),
+        Output(_id(prefix, "bar"), "figure"),
+        Input(_id(prefix, "sport-filter"), "value"),
+    )
+    def update_viz2(selected_sport):
+        fig_map = make_choropleth_figure(df, selected_sport=selected_sport)
+        fig_bar = make_barchart_figure(df, selected_sport=selected_sport)
+        return fig_map, fig_bar
+
+
 
 
 if __name__ == "__main__":
+    df_test = load_and_preprocess_data(
+        event_results_path="data/Olympic_Athlete_Event_Results.csv"
+    )
+
+    app = Dash(__name__)
+    app.layout = html.Div(
+        style={
+            "maxWidth": "1400px",
+            "margin": "0 auto",
+            "padding": "24px",
+            "backgroundColor": "#0f1115",
+            "minHeight": "100vh",
+        },
+        children=[create_viz2_layout(prefix="viz2")],
+    )
+
+    register_viz2_callbacks(app, df_test, prefix="viz2")
     app.run(debug=True)
