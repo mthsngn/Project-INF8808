@@ -62,12 +62,11 @@ COUNTRY_COORDS = {
 # Continents
 CONTINENTS: dict[str, dict] = {
     "Amérique du Nord": {
-        "nocs"     : ["CAN", "USA", "MEX"],
-        "color"    : "#4A90D9",
-        "lat_range": [15, 80],
-        "lon_range": [-170, -50],
-        "center"   : (52, -100),
-        "label_offset": (0, 0),
+        "nocs"      : ["CAN", "USA", "MEX"],
+        "color"     : "#4A90D9",   # couleur de la bordure
+        "lat_range" : [15, 80],
+        "lon_range" : [-170, -50],
+        "center"    : (52, -100),
     },
     "Europe": {
         "nocs": [
@@ -80,7 +79,6 @@ CONTINENTS: dict[str, dict] = {
         "lat_range": [35, 72],
         "lon_range": [-12, 42],
         "center"   : (55, 12),
-        "label_offset": (0, 0),
     },
     "Russie / ex-URSS": {
         "nocs"     : ["RUS", "URS", "EUN", "ROC", "UKR", "BLR", "KAZ"],
@@ -88,7 +86,6 @@ CONTINENTS: dict[str, dict] = {
         "lat_range": [40, 80],
         "lon_range": [18, 180],
         "center"   : (62, 90),
-        "label_offset": (0, 0),
     },
     "Asie": {
         "nocs"     : ["JPN", "KOR", "CHN", "MGL"],
@@ -96,7 +93,6 @@ CONTINENTS: dict[str, dict] = {
         "lat_range": [10, 55],
         "lon_range": [70, 155],
         "center"   : (35, 115),
-        "label_offset": (0, 0),
     },
     "Océanie": {
         "nocs"     : ["AUS", "NZL"],
@@ -104,7 +100,6 @@ CONTINENTS: dict[str, dict] = {
         "lat_range": [-50, -5],
         "lon_range": [110, 180],
         "center"   : (-30, 145),
-        "label_offset": (0, 0),
     },
 }
 
@@ -295,12 +290,7 @@ def aggregate_country_medals(df: pd.DataFrame, selected_sport: str) -> pd.DataFr
 # Figures carte
 
 def make_world_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
-    """
-    Vue monde : choroplèthe coloré par continent.
-    Chaque pays est coloré selon son continent.
-    Hover → nom du continent + total médailles.
-    Click → zoom sur ce continent (bubble map).
-    """
+
     agg = aggregate_country_medals(df, selected_sport)
 
     # Totaux par continent
@@ -315,26 +305,38 @@ def make_world_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
     )
     cont_medal_dict = dict(zip(cont_totals["continent"], cont_totals["medals"]))
 
+    max_medals = max(cont_medal_dict.values()) if cont_medal_dict else 1
+
+    pink_scale = [
+        [0.0, "#fde0ef"],
+        [0.25, "#f9b3d4"],
+        [0.55, "#f57ab4"],
+        [0.78, "#c51b8a"],
+        [1.0,  "#7a0177"],
+    ]
+
     fig = go.Figure()
 
-    # Une trace Choropleth par continent (couleur uniforme = couleur du continent)
+    # Une trace Choropleth par continent :
     for cont_name, conf in CONTINENTS.items():
         total = cont_medal_dict.get(cont_name, 0)
         nocs  = conf["nocs"]
 
         fig.add_trace(go.Choropleth(
-            locations    = nocs,
-            z            = [1] * len(nocs),
-            locationmode = "ISO-3",
-            colorscale   = [[0, conf["color"]], [1, conf["color"]]],
-            showscale    = False,
-            marker_line_color = "white",
-            marker_line_width = 0.7,
-            customdata   = [cont_name] * len(nocs),
-            hovertemplate = (
+            locations         = nocs,
+            z                 = [total] * len(nocs),
+            zmin              = 0,
+            zmax              = max_medals,
+            locationmode      = "ISO-3",
+            colorscale        = pink_scale,
+            showscale         = False,
+            marker_line_color = conf["color"],  # bordure couleur du continent
+            marker_line_width = 0.5,
+            customdata        = [cont_name] * len(nocs),
+            hovertemplate     = (
                 f"<b>{cont_name}</b><br>"
                 f"Médailles totales : {total}<br>"
-                "<i>Cliquez pour explorer →</i>"
+                "<i>Cliquez pour explorer</i>"
                 "<extra></extra>"
             ),
             name = cont_name,
@@ -342,17 +344,17 @@ def make_world_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
 
     # Labels texte au centre de chaque continent
     for cont_name, conf in CONTINENTS.items():
-        total = cont_medal_dict.get(cont_name, 0)
+        total      = cont_medal_dict.get(cont_name, 0)
         clat, clon = conf["center"]
         fig.add_trace(go.Scattergeo(
-            lat      = [clat],
-            lon      = [clon],
-            mode     = "text",
-            text     = [f"<b>{cont_name}</b><br>{total} médailles"],
-            textfont = dict(size=10, color="#1F2937", family="Inter, Arial, sans-serif"),
+            lat       = [clat],
+            lon       = [clon],
+            mode      = "text",
+            text      = [f"<b>{cont_name}</b><br>{total} médailles"],
+            textfont  = dict(size=10, color="black", family="Inter, Arial, sans-serif"),
             hoverinfo = "skip",
             showlegend = False,
-            name = f"_label_{cont_name}",
+            name      = f"_label_{cont_name}",
         ))
 
     title = "Carte des médailles par continent"
@@ -361,25 +363,20 @@ def make_world_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
 
     fig = _geo_layout(fig, title=title)
 
-    # Activer showlegend sur les traces Choropleth pour afficher la légende sans ajouter de traces fantômes
-    for i, cont_name in enumerate(CONTINENTS):
-        fig.data[i].showlegend = True
-        fig.data[i].name       = cont_name
-
-    fig.update_layout(
-        showlegend=True,
-        legend=dict(
-            orientation="h",
-            yanchor="bottom", y=0.01,
-            xanchor="center", x=0.5,
-            bgcolor="rgba(255,255,255,0.85)",
-            bordercolor="#E2E8F0",
-            borderwidth=1,
-            font=dict(size=11, color="#1F2937"),
-            itemclick=False,
-            itemdoubleclick=False,
+    # Une seule colorbar sur la première trace, cachée sur les autres
+    fig.data[0].update(
+        showscale=True,
+        colorbar=dict(
+            title    = dict(text="Médailles", font=dict(size=12, color="#1F2937")),
+            thickness= 12,
+            len      = 0.55,
+            tickfont = dict(size=10, color="#1F2937"),
         ),
     )
+    for trace in fig.data[1:]:
+        if hasattr(trace, "showscale"):
+            trace.showscale = False
+    fig.update_layout(showlegend=False)
 
     return fig
 
@@ -620,7 +617,7 @@ def create_viz2_layout(prefix: str = "viz2") -> html.Section:
                                     html.H3("Carte géographique des médailles"),
                                     html.P(
                                         id=_id(prefix, "map-subtitle"),
-                                        children="Cliquez sur un continent pour zoomer.",
+                                        children="Cliquez sur un continent pour plus de détails.",
                                     ),
                                 ],
                             ),
@@ -684,7 +681,7 @@ def register_viz2_callbacks(app: Dash, df: pd.DataFrame, prefix: str = "viz2") -
                 make_world_figure(df, selected_sport),
                 None,
                 BTN_HIDDEN,
-                "Cliquez sur un continent pour zoomer.",
+                "Cliquez sur un continent pour plus de détails.",
             )
 
         # Clic sur la carte
@@ -723,7 +720,7 @@ def register_viz2_callbacks(app: Dash, df: pd.DataFrame, prefix: str = "viz2") -
                 make_world_figure(df, selected_sport),
                 None,
                 BTN_HIDDEN,
-                "Cliquez sur un continent pour zoomer.",
+                "Cliquez sur un continent pour plus de détails.",
             )
 
         # Changement de sport
@@ -741,7 +738,7 @@ def register_viz2_callbacks(app: Dash, df: pd.DataFrame, prefix: str = "viz2") -
             make_world_figure(df, selected_sport),
             None,
             BTN_HIDDEN,
-            "Cliquez sur un continent pour zoomer.",
+            "Cliquez sur un continent pour plus de détails.",
         )
 
 
