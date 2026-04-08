@@ -55,7 +55,7 @@ app.layout = html.Div(
                     className="header-content",
                     children=[
                         html.P("Visualisation de données", className="eyebrow"),
-                        html.H1("JO d’Hiver — Tableau de bord interactif"),
+                        html.H1("Jeux Olympiques d’Hiver"),
                         html.P(
                             "Analyse des performances olympiques d’hiver selon les facteurs physiologiques et géographiques.",
                             className="header-description",

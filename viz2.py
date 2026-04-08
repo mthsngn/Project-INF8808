@@ -97,7 +97,7 @@ CONTINENTS: dict[str, dict] = {
     "Océanie": {
         "nocs"     : ["AUS", "NZL"],
         "color"    : "#1ABC9C",
-        "lat_range": [-50, -5],
+        "lat_range": [-50, -5], 
         "lon_range": [110, 180],
         "center"   : (-30, 145),
     },
