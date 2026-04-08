@@ -1,4 +1,3 @@
-
 import pandas as pd
 import plotly.graph_objects as go
 from dash import Dash, dcc, html, Input, Output, State, callback_context
@@ -134,7 +133,13 @@ _BTN_BASE = {
     "marginLeft"   : "auto",
 }
 BTN_HIDDEN  = {**_BTN_BASE, "display": "none"}
-BTN_VISIBLE = {**_BTN_BASE}
+BTN_VISIBLE = {
+    **_BTN_BASE,
+    "position" : "absolute",
+    "top"      : "63px",
+    "left"    : "250px",
+    "zIndex"   : "10",
+}
 
 
 # Helpers
@@ -611,19 +616,24 @@ def create_viz2_layout(prefix: str = "viz2") -> html.Section:
                         children=[
                             html.Div(
                                 className="viz-card-header",
-                                style={"display": "flex", "alignItems": "flex-start", "gap": "12px"},
                                 children=[
-                                    html.Div(
-                                        style={"flex": "1"},
-                                        children=[
-                                            html.H3("Carte géographique des médailles"),
-                                            html.P(
-                                                id=_id(prefix, "map-subtitle"),
-                                                children="Cliquez sur un continent pour zoomer.",
-                                            ),
-                                        ],
+                                    html.H3("Carte géographique des médailles"),
+                                    html.P(
+                                        id=_id(prefix, "map-subtitle"),
+                                        children="Cliquez sur un continent pour zoomer.",
                                     ),
-                                    # Bouton retour (caché par défaut)
+                                ],
+                            ),
+                            # Conteneur relatif pour positionner le bouton par-dessus la carte
+                            html.Div(
+                                style={"position": "relative"},
+                                children=[
+                                    dcc.Graph(
+                                        id=_id(prefix, "map"),
+                                        config={"displayModeBar": False},
+                                        style={"height": "500px"},
+                                    ),
+                                    # Bouton retour en overlay haut-droite de la carte
                                     html.Button(
                                         "← Retour",
                                         id=_id(prefix, "back-btn"),
@@ -631,11 +641,6 @@ def create_viz2_layout(prefix: str = "viz2") -> html.Section:
                                         style=BTN_HIDDEN,
                                     ),
                                 ],
-                            ),
-                            dcc.Graph(
-                                id=_id(prefix, "map"),
-                                config={"displayModeBar": False},
-                                style={"height": "500px"},
                             ),
                         ],
                     ),
