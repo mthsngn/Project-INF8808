@@ -14,12 +14,13 @@ from dash import Dash, dcc, html, Input, Output
 
 # Configuration
 
-SELECTED_SPORTS = ["Biathlon", "Ice Hockey", "Speed Skating"]
+SELECTED_SPORTS      = ["Biathlon", "Hockey sur glace", "Patinage de vitesse"]
+ENGLISH_SPORTS_FILTER = ["Biathlon", "Ice Hockey", "Speed Skating"]
 
 SPORT_COLORS = {
     "Biathlon": "#5B6CFF",
-    "Ice Hockey": "#FF7A59",
-    "Speed Skating": "#22A699",
+    "Hockey sur glace": "#FF7A59",
+    "Patinage de vitesse": "#22A699",
 }
 
 VARIABLES = {
@@ -48,8 +49,8 @@ VARIABLE_OPTIONS = [
 SPORT_OPTIONS = [
     {"label": "Tous", "value": "All"},
     {"label": "Biathlon", "value": "Biathlon"},
-    {"label": "Ice Hockey", "value": "Ice Hockey"},
-    {"label": "Speed Skating", "value": "Speed Skating"},
+    {"label": "Hockey sur glace", "value": "Hockey sur glace"},
+    {"label": "Patinage de vitesse", "value": "Patinage de vitesse"},
 ]
 
 
@@ -153,7 +154,7 @@ def load_and_preprocess_data(
         "df_games",
     )
 
-    df_results = df_results[df_results["sport"].isin(SELECTED_SPORTS)].copy()
+    df_results = df_results[df_results["sport"].isin(ENGLISH_SPORTS_FILTER)].copy()
 
     df_results = df_results[
         ["edition_id", "country_noc", "sport", "athlete_id", "athlete", "medal"]
@@ -169,7 +170,15 @@ def load_and_preprocess_data(
     df = df.merge(df_games, on="edition_id", how="left")
 
     df["sex"] = df["sex"].replace({"Male": "M", "Female": "F"})
-    df["medal"] = df["medal"].fillna("None")
+    df["medal"] = df["medal"].fillna("Aucune")
+
+    # Traduction des valeurs en français
+    df["medal"] = df["medal"].replace({
+        "Gold": "Or", "Silver": "Argent", "Bronze": "Bronze", "None": "Aucune"
+    })
+    df["sport"] = df["sport"].replace({
+        "Ice Hockey": "Hockey sur glace", "Speed Skating": "Patinage de vitesse"
+    })
     df["year"] = pd.to_numeric(df["year"], errors="coerce")
 
     df["born_year"] = df["born"].astype(str).str.extract(r"(\d{4})")[0]
@@ -230,7 +239,7 @@ def apply_global_filters(
         dff = dff[dff["sex"] == selected_sex]
 
     if selected_medal_filter == "Medaled":
-        dff = dff[dff["medal"] != "None"]
+        dff = dff[dff["medal"] != "Aucune"]
 
     return dff
 
@@ -292,12 +301,12 @@ def make_scatter_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
     if dff.empty:
         return make_empty_figure("Aucune donnée disponible pour ce nuage de points.")
 
-    medal_order = ["Gold", "Silver", "Bronze", "None"]
+    medal_order = ["Or", "Argent", "Bronze", "Aucune"]
     medal_styles = {
-        "Gold": dict(color="#D4AF37", line=dict(color="#8B6A16", width=1)),
-        "Silver": dict(color="#C0C0C0", line=dict(color="#7C7C7C", width=1)),
+        "Or": dict(color="#D4AF37", line=dict(color="#8B6A16", width=1)),
+        "Argent": dict(color="#C0C0C0", line=dict(color="#7C7C7C", width=1)),
         "Bronze": dict(color="#CD7F32", line=dict(color="#8A5522", width=1)),
-        "None": dict(color="#FFFFFF", line=dict(color="#6B7280", width=1.2)),
+        "Aucune": dict(color="#FFFFFF", line=dict(color="#6B7280", width=1.2)),
     }
 
     fig = go.Figure()

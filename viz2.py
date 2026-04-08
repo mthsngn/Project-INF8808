@@ -4,17 +4,18 @@ from dash import Dash, dcc, html, Input, Output, State, callback_context
 
 
 # Configuration
-SELECTED_SPORTS = ["Biathlon", "Ice Hockey", "Speed Skating"]
+SELECTED_SPORTS      = ["Biathlon", "Hockey sur glace", "Patinage de vitesse"]
+ENGLISH_SPORTS_FILTER = ["Biathlon", "Ice Hockey", "Speed Skating"]
 
 SPORT_OPTIONS = [
     {"label": "Tous",          "value": "All"},
-    {"label": "Biathlon",      "value": "Biathlon"},
-    {"label": "Ice Hockey",    "value": "Ice Hockey"},
-    {"label": "Speed Skating", "value": "Speed Skating"},
+    {"label": "Biathlon",            "value": "Biathlon"},
+    {"label": "Hockey sur glace",    "value": "Hockey sur glace"},
+    {"label": "Patinage de vitesse", "value": "Patinage de vitesse"},
 ]
 
-MEDAL_ORDER  = ["Gold", "Silver", "Bronze"]
-MEDAL_COLORS = {"Gold": "#D4AF37", "Silver": "#C0C0C0", "Bronze": "#CD7F32"}
+MEDAL_ORDER  = ["Or", "Argent", "Bronze"]
+MEDAL_COLORS = {"Or": "#D4AF37", "Argent": "#C0C0C0", "Bronze": "#CD7F32"}
 
 # Noms complets des pays à partir de leur code NOC
 COUNTRY_NAMES = {
@@ -239,11 +240,19 @@ def load_and_preprocess_data(event_results_path: str) -> pd.DataFrame:
     keep = ["sport", "medal", "country_noc"] + [c for c in optional if c in df.columns]
 
     df = df[keep].copy()
-    df = df[df["sport"].isin(SELECTED_SPORTS)].copy()
+    df = df[df["sport"].isin(ENGLISH_SPORTS_FILTER)].copy()
     df = df.dropna(subset=["sport", "country_noc"]).copy()
 
     df["country_noc"]  = df["country_noc"].astype(str).str.strip().str.upper()
     df["medal"]        = df["medal"].fillna("None").astype(str).str.strip().replace({"": "None"})
+
+    # Traduction des valeurs en français
+    df["medal"] = df["medal"].replace({
+        "Gold": "Or", "Silver": "Argent", "Bronze": "Bronze", "None": "Aucune"
+    })
+    df["sport"] = df["sport"].replace({
+        "Ice Hockey": "Hockey sur glace", "Speed Skating": "Patinage de vitesse"
+    })
     df["country_name"] = df["country_noc"].map(get_country_label)
 
     # Identifiant de déduplication
@@ -455,7 +464,7 @@ def make_bubble_figure(
         text          = pivot["country_name"],
         textposition  = "top center",
         textfont      = dict(size=10, color="#1F2937"),
-        customdata    = pivot[["Gold", "Silver", "Bronze", "total", "country_name"]].values,
+        customdata    = pivot[["Or", "Argent", "Bronze", "total", "country_name"]].values,
         hovertemplate = (
             "<b>%{customdata[4]}</b><br>"
             "🥇 Or : %{customdata[0]}<br>"
