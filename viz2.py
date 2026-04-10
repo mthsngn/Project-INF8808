@@ -523,9 +523,9 @@ def make_barchart_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
         agg_full["country_noc"], categories=country_order, ordered=True
     )
     agg_full = agg_full.sort_values(["country_noc", "medal"])
-
+    MEDAL_ORDER_STACKED = ["Or", "Argent", "Bronze"]
     fig = go.Figure()
-    for medal in MEDAL_ORDER:
+    for medal in MEDAL_ORDER_STACKED:
         dm = agg_full[agg_full["medal"] == medal]
         fig.add_trace(go.Bar(
             x         = dm["country_name"],
@@ -547,7 +547,7 @@ def make_barchart_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
 
     fig = apply_common_layout(fig, title=title, x_title="Pays", y_title="Nombre de médailles")
     fig.update_layout(
-        barmode="group", bargap=0.18, bargroupgap=0.08,
+        barmode="stack", bargap=0.18, bargroupgap=0.08,
         legend_title_text="Type de médaille",
     )
     fig.update_xaxes(tickangle=-45, tickfont=dict(size=11), automargin=True)
