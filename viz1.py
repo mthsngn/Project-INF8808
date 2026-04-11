@@ -19,9 +19,9 @@ from utils import (
 # Configuration
 
 SPORT_COLORS = {
-    "Biathlon": "#5B6CFF",
-    "Hockey sur glace": "#FF7A59",
-    "Patinage de vitesse": "#22A699",
+    "Biathlon": "#222222",
+    "Hockey sur glace": "#222222",
+    "Patinage de vitesse": "#222222",
 }
 
 VARIABLES = {
@@ -341,6 +341,7 @@ def make_trend_figure(df: pd.DataFrame, variable_key: str) -> go.Figure:
         return make_empty_figure("Aucune donnée disponible pour la tendance temporelle.")
 
     fig = go.Figure()
+    end_points = []
 
     for sport_name in SELECTED_SPORTS:
         d = agg[agg["sport"] == sport_name].sort_values("year").copy()
@@ -360,7 +361,42 @@ def make_trend_figure(df: pd.DataFrame, variable_key: str) -> go.Figure:
                     "Année: %{x}<br>"
                     f"{label}: %{{y:.2f}}<extra></extra>"
                 ),
+                showlegend=False,
             )
+        )
+
+        last_row = d.iloc[-1]
+        end_points.append(
+            {
+                "sport": sport_name,
+                "x": last_row["year"],
+                "y": last_row["value"],
+                "color": SPORT_COLORS[sport_name],
+            }
+        )
+
+    end_points = sorted(end_points, key=lambda p: p["y"], reverse=True)
+    yshifts = [0] * len(end_points)
+    min_diff = 1.0
+    for i in range(1, len(end_points)):
+        if abs(end_points[i - 1]["y"] - end_points[i]["y"]) < min_diff:
+            if yshifts[i - 1] == 0:
+                yshifts[i - 1] = 10
+                yshifts[i] = -10
+            else:
+                yshifts[i] = -yshifts[i - 1]
+
+    for p, yshift in zip(end_points, yshifts):
+        fig.add_annotation(
+            x=p["x"],
+            y=p["y"],
+            text=p["sport"],
+            showarrow=False,
+            xanchor="left",
+            yanchor="middle",
+            xshift=10,
+            yshift=yshift,
+            font=dict(size=12, color=p["color"]),
         )
 
     fig = apply_common_layout(
@@ -369,7 +405,14 @@ def make_trend_figure(df: pd.DataFrame, variable_key: str) -> go.Figure:
         x_title="Année (Jeux Olympiques d’hiver)",
         y_title=label,
     )
+
+    fig.update_layout(
+        showlegend=False,
+        dragmode=False,
+        margin=dict(r=120),
+    )
     fig.update_xaxes(dtick=4)
+
     return fig
 
 
@@ -385,8 +428,8 @@ def create_viz1_layout(prefix: str = "viz1") -> html.Section:
                 children=[
                     html.H2("Facteurs physiologiques et performance olympique"),
                     html.P(
-                        "Explorer l’effet de l’âge, de la taille et du poids "
-                        "selon les disciplines et les performances observées."
+                        "Explorez l'effet de l'âge, de la taille et du poids selon les disciplines et les performances observées. "
+                        "Utilisez les filtres pour comparer les profils selon le sexe, les médailles et le sport."
                     ),
                 ],
             ),
@@ -455,7 +498,7 @@ def create_viz1_layout(prefix: str = "viz1") -> html.Section:
                                 className="viz-card-header",
                                 children=[
                                     html.H3("Distribution"),
-                                    html.P("Comparer les profils physiologiques selon les disciplines."),
+                                    html.P("Comparez les profils physiologiques selon les disciplines."),
                                 ],
                             ),
                             dcc.Graph(
@@ -472,7 +515,7 @@ def create_viz1_layout(prefix: str = "viz1") -> html.Section:
                                 className="viz-card-header",
                                 children=[
                                     html.H3("Relation taille / poids"),
-                                    html.P("Observer les regroupements selon le sport et les médailles."),
+                                    html.P("Observez les regroupements selon le sport et les médailles."),
                                 ],
                             ),
                             dcc.Graph(
@@ -495,12 +538,12 @@ def create_viz1_layout(prefix: str = "viz1") -> html.Section:
                                 className="viz-card-header",
                                 children=[
                                     html.H3("Évolution temporelle"),
-                                    html.P("Suivre la moyenne de la variable choisie dans le temps."),
+                                    html.P("Suivez la moyenne de la variable choisie dans le temps."),
                                 ],
                             ),
                             dcc.Graph(
                                 id=_id(prefix, "trend"),
-                                config={"displayModeBar": False},
+                                config={"scrollZoom": True, "displayModeBar": False},
                                 style={"height": "380px"},
                             ),
                         ],

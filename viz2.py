@@ -584,7 +584,7 @@ def create_viz2_layout(prefix: str = "viz2") -> html.Section:
                                 className="viz-card-header",
                                 children=[
                                     html.H3("Distribution des médailles par pays"),
-                                    html.P("Comparer le nombre de médailles d'or, d'argent et de bronze."),
+                                    html.P("Comparez le nombre de médailles d'or, d'argent et de bronze."),
                                 ],
                             ),
                             dcc.Graph(
