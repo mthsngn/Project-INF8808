@@ -1,21 +1,22 @@
-"""
-INF8808
-Exécution :
-    pip install dash pandas numpy plotly
-    python viz1.py
-"""
+"""INF8808 — Visualisation 1 : facteurs physiologiques."""
 
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from dash import Dash, dcc, html, Input, Output
 
+from utils import (
+    _id,
+    _validate_columns,
+    make_empty_figure,
+    SELECTED_SPORTS,
+    ENGLISH_SPORTS_FILTER,
+    MEDAL_TRANSLATIONS,
+    SPORT_TRANSLATIONS,
+)
 
 
 # Configuration
-
-SELECTED_SPORTS      = ["Biathlon", "Hockey sur glace", "Patinage de vitesse"]
-ENGLISH_SPORTS_FILTER = ["Biathlon", "Ice Hockey", "Speed Skating"]
 
 SPORT_COLORS = {
     "Biathlon": "#5B6CFF",
@@ -56,39 +57,6 @@ SPORT_OPTIONS = [
 
 
 # Helpers
-
-def _id(prefix: str, name: str) -> str:
-    return f"{prefix}-{name}"
-
-
-def _validate_columns(df: pd.DataFrame, required_columns: list[str], df_name: str) -> None:
-    missing = set(required_columns) - set(df.columns)
-    if missing:
-        raise ValueError(f"Colonnes manquantes dans {df_name}: {sorted(missing)}")
-
-
-def make_empty_figure(message: str) -> go.Figure:
-    fig = go.Figure()
-    fig.update_layout(
-        template="plotly_white",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=40, r=20, t=40, b=40),
-        xaxis=dict(visible=False),
-        yaxis=dict(visible=False),
-        annotations=[
-            dict(
-                text=message,
-                x=0.5,
-                y=0.5,
-                xref="paper",
-                yref="paper",
-                showarrow=False,
-                font=dict(size=15, color="#6B7280"),
-            )
-        ],
-    )
-    return fig
 
 
 def apply_common_layout(fig: go.Figure, title: str, x_title: str = "", y_title: str = "") -> go.Figure:
@@ -173,12 +141,8 @@ def load_and_preprocess_data(
     df["medal"] = df["medal"].fillna("Aucune")
 
     # Traduction des valeurs en français
-    df["medal"] = df["medal"].replace({
-        "Gold": "Or", "Silver": "Argent", "Bronze": "Bronze", "None": "Aucune"
-    })
-    df["sport"] = df["sport"].replace({
-        "Ice Hockey": "Hockey sur glace", "Speed Skating": "Patinage de vitesse"
-    })
+    df["medal"] = df["medal"].replace(MEDAL_TRANSLATIONS)
+    df["sport"] = df["sport"].replace(SPORT_TRANSLATIONS)
     df["year"] = pd.to_numeric(df["year"], errors="coerce")
 
     df["born_year"] = df["born"].astype(str).str.extract(r"(\d{4})")[0]
@@ -548,7 +512,8 @@ def create_viz1_layout(prefix: str = "viz1") -> html.Section:
 
 
 
-# Callbacks 
+# Callbacks
+
 
 def register_viz1_callbacks(app: Dash, df: pd.DataFrame, prefix: str = "viz1") -> None:
     @app.callback(

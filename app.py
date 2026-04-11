@@ -11,7 +11,6 @@ from viz2 import (
 )
 
 
-
 # Chargement des données
 
 df_viz1 = load_viz1_data(
@@ -25,14 +24,12 @@ df_viz2 = load_viz2_data(
 )
 
 
-
 # KPI simples pour le haut de page
 
-n_athletes = df_viz1["athlete_id"].nunique() if "athlete_id" in df_viz1.columns else df_viz1["athlete"].nunique()
+n_athletes = df_viz1["athlete_id"].nunique()
 n_sports = df_viz1["sport"].nunique()
 n_years = df_viz1["year"].nunique()
 n_countries = df_viz1["country_noc"].nunique()
-
 
 
 # App Dash
@@ -113,12 +110,10 @@ app.layout = html.Div(
 )
 
 
-
 # Callbacks
 
 register_viz1_callbacks(app, df_viz1, prefix="viz1")
 register_viz2_callbacks(app, df_viz2, prefix="viz2")
-
 
 
 # Run

@@ -1,20 +1,28 @@
+"""INF8808 — Visualisation 2 : facteurs géographiques."""
+
 import pandas as pd
 import plotly.graph_objects as go
 from dash import Dash, dcc, html, Input, Output, State, callback_context
 
+from utils import (
+    _id,
+    _validate_columns,
+    make_empty_figure,
+    ENGLISH_SPORTS_FILTER,
+    MEDAL_TRANSLATIONS,
+    SPORT_TRANSLATIONS,
+)
+
 
 # Configuration
-SELECTED_SPORTS      = ["Biathlon", "Hockey sur glace", "Patinage de vitesse"]
-ENGLISH_SPORTS_FILTER = ["Biathlon", "Ice Hockey", "Speed Skating"]
-
 SPORT_OPTIONS = [
-    {"label": "Tous",          "value": "All"},
-    {"label": "Biathlon",            "value": "Biathlon"},
-    {"label": "Hockey sur glace",    "value": "Hockey sur glace"},
+    {"label": "Tous", "value": "All"},
+    {"label": "Biathlon", "value": "Biathlon"},
+    {"label": "Hockey sur glace", "value": "Hockey sur glace"},
     {"label": "Patinage de vitesse", "value": "Patinage de vitesse"},
 ]
 
-MEDAL_ORDER  = ["Or", "Argent", "Bronze"]
+MEDAL_ORDER = ["Or", "Argent", "Bronze"]
 MEDAL_COLORS = {"Or": "#D4AF37", "Argent": "#C0C0C0", "Bronze": "#CD7F32"}
 
 # Noms complets des pays à partir de leur code NOC
@@ -63,11 +71,11 @@ COUNTRY_COORDS = {
 # Continents
 CONTINENTS: dict[str, dict] = {
     "Amérique du Nord": {
-        "nocs"      : ["CAN", "USA", "MEX"],
-        "color"     : "#4A90D9",   # couleur de la bordure
-        "lat_range" : [15, 80],
-        "lon_range" : [-170, -50],
-        "center"    : (52, -100),
+        "nocs": ["CAN", "USA", "MEX"],
+        "color": "#4A90D9",
+        "lat_range": [15, 80],
+        "lon_range": [-170, -50],
+        "center": (52, -100),
     },
     "Europe": {
         "nocs": [
@@ -76,78 +84,70 @@ CONTINENTS: dict[str, dict] = {
             "LTU", "DEN", "BEL", "LIE", "MON", "BUL", "ROU", "GRE", "ESP",
             "FRG", "GDR", "TCH", "YUG", "BIH",
         ],
-        "color"    : "#E8A838",
+        "color": "#E8A838",
         "lat_range": [35, 72],
         "lon_range": [-12, 42],
-        "center"   : (55, 12),
+        "center": (55, 12),
     },
     "Russie / ex-URSS": {
-        "nocs"     : ["RUS", "URS", "EUN", "ROC", "UKR", "BLR", "KAZ"],
-        "color"    : "#E85C5C",
+        "nocs": ["RUS", "URS", "EUN", "ROC", "UKR", "BLR", "KAZ"],
+        "color": "#E85C5C",
         "lat_range": [40, 80],
         "lon_range": [18, 180],
-        "center"   : (62, 90),
+        "center": (62, 90),
     },
     "Asie": {
-        "nocs"     : ["JPN", "KOR", "CHN", "MGL"],
-        "color"    : "#5CBF85",
+        "nocs": ["JPN", "KOR", "CHN", "MGL"],
+        "color": "#5CBF85",
         "lat_range": [10, 55],
         "lon_range": [70, 155],
-        "center"   : (35, 115),
+        "center": (35, 115),
     },
     "Océanie": {
-        "nocs"     : ["AUS", "NZL"],
-        "color"    : "#1ABC9C",
-        "lat_range": [-50, -5], 
+        "nocs": ["AUS", "NZL"],
+        "color": "#1ABC9C",
+        "lat_range": [-50, -5],
         "lon_range": [110, 180],
-        "center"   : (-30, 145),
+        "center": (-30, 145),
     },
 }
 
-# Mapping inverse NOC dans CONTINENTS pour faciliter lecture du continent dans le callback de la carte
-NOC_TO_CONTINENT: dict[str, str] = {}
-for _cont, _conf in CONTINENTS.items():
-    for _noc in _conf["nocs"]:
-        NOC_TO_CONTINENT[_noc] = _cont
+# Mapping inverse : NOC → continent
+NOC_TO_CONTINENT: dict[str, str] = {
+    noc: continent
+    for continent, conf in CONTINENTS.items()
+    for noc in conf["nocs"]
+}
 
 
 # Styles du bouton Retour
 _BTN_BASE = {
-    "display"      : "inline-flex",
-    "alignItems"   : "center",
-    "gap"          : "6px",
-    "padding"      : "6px 16px",
-    "background"   : "var(--accent, #d8b56a)",
-    "color"        : "#161616",
-    "border"       : "none",
-    "borderRadius" : "8px",
-    "fontSize"     : "0.88rem",
-    "fontWeight"   : "700",
-    "cursor"       : "pointer",
-    "fontFamily"   : "Inter, Arial, sans-serif",
-    "boxShadow"    : "0 4px 12px rgba(216,181,106,0.25)",
-    "marginLeft"   : "auto",
+    "display": "inline-flex",
+    "alignItems": "center",
+    "gap": "6px",
+    "padding": "6px 16px",
+    "background": "var(--accent, #d8b56a)",
+    "color": "#161616",
+    "border": "none",
+    "borderRadius": "8px",
+    "fontSize": "0.88rem",
+    "fontWeight": "700",
+    "cursor": "pointer",
+    "fontFamily": "Inter, Arial, sans-serif",
+    "boxShadow": "0 4px 12px rgba(216,181,106,0.25)",
+    "marginLeft": "auto",
 }
-BTN_HIDDEN  = {**_BTN_BASE, "display": "none"}
+BTN_HIDDEN = {**_BTN_BASE, "display": "none"}
 BTN_VISIBLE = {
     **_BTN_BASE,
-    "position" : "absolute",
-    "top"      : "63px",
-    "left"    : "250px",
-    "zIndex"   : "10",
+    "position": "absolute",
+    "top": "63px",
+    "left": "250px",
+    "zIndex": "10",
 }
 
 
 # Helpers
-
-def _id(prefix: str, name: str) -> str:
-    return f"{prefix}-{name}"
-
-
-def _validate_columns(df: pd.DataFrame, required: list[str], name: str) -> None:
-    missing = set(required) - set(df.columns)
-    if missing:
-        raise ValueError(f"Colonnes manquantes dans {name}: {sorted(missing)}")
 
 
 def _geo_layout(fig: go.Figure, lat_range=None, lon_range=None, title: str = "") -> go.Figure:
@@ -182,22 +182,6 @@ def _geo_layout(fig: go.Figure, lat_range=None, lon_range=None, title: str = "")
         geo=geo,
         showlegend=False,
         font=dict(family="Inter, Arial, sans-serif", color="#1F2937"),
-    )
-    return fig
-
-
-def make_empty_figure(message: str) -> go.Figure:
-    fig = go.Figure()
-    fig.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=40, r=20, t=40, b=40),
-        xaxis=dict(visible=False),
-        yaxis=dict(visible=False),
-        annotations=[dict(
-            text=message, x=0.5, y=0.5, xref="paper", yref="paper",
-            showarrow=False, font=dict(size=15, color="#6B7280"),
-        )],
     )
     return fig
 
@@ -247,12 +231,8 @@ def load_and_preprocess_data(event_results_path: str) -> pd.DataFrame:
     df["medal"]        = df["medal"].fillna("None").astype(str).str.strip().replace({"": "None"})
 
     # Traduction des valeurs en français
-    df["medal"] = df["medal"].replace({
-        "Gold": "Or", "Silver": "Argent", "Bronze": "Bronze", "None": "Aucune"
-    })
-    df["sport"] = df["sport"].replace({
-        "Ice Hockey": "Hockey sur glace", "Speed Skating": "Patinage de vitesse"
-    })
+    df["medal"] = df["medal"].replace(MEDAL_TRANSLATIONS)
+    df["sport"] = df["sport"].replace(SPORT_TRANSLATIONS)
     df["country_name"] = df["country_noc"].map(get_country_label)
 
     # Identifiant de déduplication
@@ -299,7 +279,6 @@ def aggregate_country_medals(df: pd.DataFrame, selected_sport: str) -> pd.DataFr
 # Figures carte
 
 def make_world_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
-
     agg = aggregate_country_medals(df, selected_sport)
 
     # Totaux par continent
@@ -681,7 +660,7 @@ def register_viz2_callbacks(app: Dash, df: pd.DataFrame, prefix: str = "viz2") -
         prevent_initial_call=False,
     )
     def update_map(selected_sport, click_data, back_clicks, current_continent):
-        triggered  = callback_context.triggered
+        triggered = callback_context.triggered
         triggered_id = triggered[0]["prop_id"].split(".")[0] if triggered else None
 
         #  Retour vers la vue monde
@@ -760,7 +739,7 @@ if __name__ == "__main__":
     app.layout = html.Div(
         style={
             "maxWidth": "1400px",
-            "margin" : "0 auto",
+            "margin": "0 auto",
             "padding": "24px",
             "backgroundColor": "#0f1115",
             "minHeight": "100vh",
