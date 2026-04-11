@@ -247,13 +247,20 @@ def make_boxplot_figure(df: pd.DataFrame, variable_key: str) -> go.Figure:
                 ),
             )
         )
-
+    
+    article_map = {
+        "age": "de l'âge",
+        "height_cm": "de la taille",
+        "weight_kg": "du poids",
+    }
+        
     fig = apply_common_layout(
         fig,
-        title=f"Distribution de {label.lower()} par discipline",
+        title=f"Distribution {article_map[variable_key]} par discipline",
         x_title="Discipline",
         y_title=label,
     )
+    
     fig.update_layout(showlegend=False)
     return fig
 
@@ -398,10 +405,16 @@ def make_trend_figure(df: pd.DataFrame, variable_key: str) -> go.Figure:
             yshift=yshift,
             font=dict(size=12, color=p["color"]),
         )
+        
+    article_map = {
+        "age": "de l'âge",
+        "height_cm": "de la taille",
+        "weight_kg": "du poids",
+    }
 
     fig = apply_common_layout(
         fig,
-        title=f"Évolution temporelle de {label.lower()}",
+        title=f"Évolution temporelle {article_map[variable_key]}",
         x_title="Année (Jeux Olympiques d’hiver)",
         y_title=label,
     )
