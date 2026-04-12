@@ -47,7 +47,7 @@ body {
   color: var(--text-main);
 }
 
-/* ===== PAGE LAYOUT ===== */
+/*  PAGE LAYOUT */
 
 .page-container {
   width: min(1400px, calc(100% - 48px));
@@ -57,7 +57,7 @@ body {
   gap: var(--space-5);
 }
 
-/* ===== HEADER ===== */
+/* HEADER */
 
 .header-zone {
   background: linear-gradient(135deg, #181c24 0%, #12151b 100%);
@@ -110,7 +110,7 @@ body {
   line-height: 1.7;
 }
 
-/* ===== KPI ROW ===== */
+/* KPI ROW */
 
 .kpi-row {
   display: grid;
@@ -152,7 +152,7 @@ body {
   line-height: 1.5;
 }
 
-/* ===== FILTERS ===== */
+/* FILTERS */
 
 .filters-zone {
   position: relative;
@@ -228,7 +228,7 @@ body {
   transform: translateY(0);
 }
 
-/* ===== SECTION BLOCKS ===== */
+/* SECTION BLOCKS */
 
 .section-block {
   background: linear-gradient(180deg, #161a22 0%, #12161d 100%);
@@ -255,7 +255,7 @@ body {
   max-width: none;
 }
 
-/* ===== GRIDS ===== */
+/* GRIDS */
 
 .physio-grid {
   display: grid;
@@ -274,7 +274,7 @@ body {
   gap: var(--space-4);
 }
 
-/* ===== VIZ CARDS ===== */
+/* VIZ CARDS */
 
 .viz-card {
   background: linear-gradient(180deg, var(--bg-card-soft) 0%, var(--bg-card) 100%);
@@ -311,7 +311,7 @@ body {
   min-height: 500px;
 }
 
-/* ===== PLOT ZONES ===== */
+/* PLOT ZONES  */
 
 .plot-zone {
   width: 100%;
@@ -334,13 +334,13 @@ body {
   content: "Zone de visualisation Plotly";
 }
 
-/* ===== OPTIONAL LITTLE SEPARATION EFFECT ===== */
+/*  OPTIONAL LITTLE SEPARATION EFFECT  */
 
 .section-block + .section-block {
   margin-top: 4px;
 }
 
-/* ===== RESPONSIVE ===== */
+/*  RESPONSIVE  */
 
 @media (max-width: 1200px) {
   .page-container {
