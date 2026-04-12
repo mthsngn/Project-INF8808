@@ -257,7 +257,7 @@ body {
   margin: 0;
   color: var(--text-muted);
   line-height: 1.7;
-  max-width: 900px;
+  max-width: none;
 }
 
 /* ===== GRIDS ===== */
