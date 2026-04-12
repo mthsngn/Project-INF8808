@@ -229,39 +229,95 @@ def make_boxplot_figure(df: pd.DataFrame, variable_key: str) -> go.Figure:
     fig = go.Figure()
 
     for sport_name in SELECTED_SPORTS:
-        d = dff[dff["sport"] == sport_name]
+        d = dff[dff["sport"] == sport_name].copy()
         if d.empty:
             continue
 
+        values = d[col].astype(float)
+
+        q1 = values.quantile(0.25)
+        median = values.quantile(0.50)
+        q3 = values.quantile(0.75)
+        iqr = q3 - q1
+
+        lower_bound = q1 - 1.5 * iqr
+        upper_bound = q3 + 1.5 * iqr
+
+        whisker_low = values[values >= lower_bound].min() if (values >= lower_bound).any() else values.min()
+        whisker_high = values[values <= upper_bound].max() if (values <= upper_bound).any() else values.max()
+
         fig.add_trace(
             go.Box(
-                y=d[col],
+                y=values,
                 name=sport_name,
                 boxpoints="outliers",
+                hoveron="points",
                 marker=dict(color=SPORT_COLORS[sport_name]),
                 line=dict(color=SPORT_COLORS[sport_name]),
                 fillcolor="rgba(255,255,255,0.65)",
                 hovertemplate=(
-                    f"Sport: {sport_name}<br>"
-                    f"{label}: %{{y:.2f}}<extra></extra>"
+                    f"<b>{sport_name}</b><br>"
+                    f"{label} : %{{y:.2f}}<br>"
+                    "<extra></extra>"
                 ),
+                showlegend=False,
             )
         )
-    
+
+        fig.add_trace(
+            go.Bar(
+                x=[sport_name],
+                y=[q3 - q1],
+                base=q1,
+                width=0.48,
+                marker=dict(
+                    color="rgba(0,0,0,0.001)",
+                    line=dict(color="rgba(0,0,0,0.001)", width=0),
+                ),
+                hovertemplate=(
+                    f"<b>{sport_name}</b><br>"
+                    f"Variable : {label}<br>"
+                    f"Nombre d'observations : {int(values.count())}<br>"
+                    f"Minimum : {float(values.min()):.2f}<br>"
+                    f"Q1 : {float(q1):.2f}<br>"
+                    f"Médiane : {float(median):.2f}<br>"
+                    f"Q3 : {float(q3):.2f}<br>"
+                    f"Maximum : {float(values.max()):.2f}<br>"
+                    f"Borne inférieure : {float(whisker_low):.2f}<br>"
+                    f"Borne supérieure : {float(whisker_high):.2f}"
+                    "<extra></extra>"
+                ),
+                showlegend=False,
+            )
+        )
+
     article_map = {
         "age": "de l'âge",
         "height_cm": "de la taille",
         "weight_kg": "du poids",
     }
-        
+
     fig = apply_common_layout(
         fig,
         title=f"Distribution {article_map[variable_key]} par discipline",
         x_title="Discipline",
         y_title=label,
     )
-    
-    fig.update_layout(showlegend=False)
+
+    fig.update_layout(
+        showlegend=False,
+        barmode="overlay",
+        hovermode="closest",
+        hoverlabel=dict(
+            bgcolor="rgba(255,255,255,0.97)",
+            font_size=13,
+            font_family="Inter, Arial, sans-serif",
+            font_color="#1F2937",
+            bordercolor="#D1D5DB",
+            align="left",
+        ),
+    )
+
     return fig
 
 
