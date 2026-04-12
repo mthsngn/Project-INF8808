@@ -35,7 +35,7 @@ n_countries = df_viz1["country_noc"].nunique()
 # App Dash
 
 app = Dash(__name__)
-app.title = "JO d’Hiver — Tableau de bord interactif"
+app.title = "JO d'Hiver - Tableau de bord interactif"
 
 
 
@@ -52,9 +52,9 @@ app.layout = html.Div(
                     className="header-content",
                     children=[
                         html.P("Visualisation de données", className="eyebrow"),
-                        html.H1("Jeux Olympiques d’Hiver"),
+                        html.H1("Jeux Olympiques d'Hiver"),
                         html.P(
-                            "Analyse des performances olympiques d’hiver selon les facteurs physiologiques et géographiques.",
+                            "Analyse des performances olympiques d'hiver selon les facteurs physiologiques et géographiques.",
                             className="header-description",
                         ),
                     ],

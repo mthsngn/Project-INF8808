@@ -1,4 +1,4 @@
-# Project-INF8808 — Jeux Olympiques d'Hiver
+# Project-INF8808 - Jeux Olympiques d'Hiver
 
 Tableau de bord interactif pour l'analyse des performances des Jeux Olympiques d'hiver, développé dans le cadre du cours INF8808 (Visualisation de données) à Polytechnique Montréal.
 
@@ -20,8 +20,8 @@ Tableau de bord interactif pour l'analyse des performances des Jeux Olympiques d
 
 L'application Dash présente deux grandes sections de visualisation :
 
-- **Viz 1 — Facteurs physiologiques** : Analyse de l'âge, de la taille et du poids des athlètes selon leur discipline et leurs résultats (boxplot, nuage de points, tendance temporelle).
-- **Viz 2 — Facteurs géographiques** : Distribution des médailles par pays et par continent, avec une carte interactive permettant le drill-down continental (carte mondiale → vue continent avec bulles proportionnelles au nombre de médailles).
+- **Viz 1 - Facteurs physiologiques** : Analyse de l'âge, de la taille et du poids des athlètes selon leur discipline et leurs résultats (boxplot, nuage de points, tendance temporelle).
+- **Viz 2 - Facteurs géographiques** : Distribution des médailles par pays et par continent, avec une carte interactive permettant le drill-down continental (carte mondiale → vue continent avec bulles proportionnelles au nombre de médailles).
 
 Un bandeau KPI en haut de page affiche le nombre total d'athlètes, de sports, d'années et de pays couverts par les données.
 
@@ -138,7 +138,7 @@ Filtres disponibles :
 | `make_world_figure(df, selected_sport)` | Carte choroplèthe mondiale : coloration par continent selon le total de médailles ; clic pour drill-down |
 | `make_bubble_figure(df, selected_sport, continent)` | Vue continent : bulles proportionnelles au total de médailles par pays, avec détail or/argent/bronze au survol |
 | `make_barchart_figure(df, selected_sport)` | Diagramme en barres groupées (or / argent / bronze) par pays, trié par total décroissant |
-| `register_viz2_callbacks(app, df, prefix)` | Enregistre 2 callbacks : mise à jour du bar chart + gestion du drill-down carte (clic continent → vue bulles, bouton « Retour » → vue monde) |
+| `register_viz2_callbacks(app, df, prefix)` | Enregistre 2 callbacks : mise à jour du bar chart + gestion du drill-down carte (clic continent : vue bulles, bouton « Retour » : vue monde) |
 
 Filtre disponible :
 - **Sport** : Tous / Biathlon / Hockey sur glace / Patinage de vitesse
