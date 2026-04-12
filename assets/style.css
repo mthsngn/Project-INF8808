@@ -127,11 +127,6 @@ body {
   transition: transform var(--transition), border-color var(--transition);
 }
 
-.kpi-card:hover {
-  transform: translateY(-3px);
-  border-color: rgba(216, 181, 106, 0.35);
-}
-
 .kpi-label {
   display: inline-block;
   margin-bottom: 10px;
