@@ -35,6 +35,7 @@ n_countries = df_viz1["country_noc"].nunique()
 # App Dash
 
 app = Dash(__name__)
+server = app.server
 app.title = "JO d'Hiver - Tableau de bord interactif"
 
 
