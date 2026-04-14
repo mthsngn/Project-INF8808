@@ -530,7 +530,7 @@ def make_barchart_figure(df: pd.DataFrame, selected_sport: str) -> go.Figure:
         legend_title_text="Type de médaille",
     )
     fig.update_xaxes(tickangle=-45, tickfont=dict(size=11), automargin=True)
-    fig.update_yaxes(tickfont=dict(size=11), rangemode="tozero")
+    fig.update_yaxes(tickfont=dict(size=11), rangemode="tozero", minallowed=0)
     return fig
 
 
@@ -583,13 +583,17 @@ def create_viz2_layout(prefix: str = "viz2") -> html.Section:
                             html.Div(
                                 className="viz-card-header",
                                 children=[
-                                    html.H3("Distribution des médailles par pays"),
-                                    html.P("Comparez le nombre de médailles d'or, d'argent et de bronze."),
+                                    html.H3("Distribution des médailles par pays depuis la création des Jeux d'hiver"),
+                                    html.P("Survolez et zoomez sur le graphique pour explorer les résultats plus en détail"),
                                 ],
                             ),
                             dcc.Graph(
                                 id=_id(prefix, "bar"),
-                                config={"displayModeBar": False},
+                                config={
+                                "displayModeBar": "hover",
+                                "scrollZoom": True,
+                                "doubleClick": "reset",
+                            },
                                 style={"height": "460px"},
                             ),
                         ],

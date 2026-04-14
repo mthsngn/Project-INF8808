@@ -545,7 +545,7 @@ def create_viz1_layout(prefix: str = "viz1") -> html.Section:
                     html.Div(
                         className="filter-item",
                         children=[
-                            html.Label("Sport du nuage de points"),
+                            html.Label("Sport (nuage de points uniquement)"),
                             dcc.Dropdown(
                                 id=_id(prefix, "scatter-sport-filter"),
                                 options=SPORT_OPTIONS,

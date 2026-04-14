@@ -86,9 +86,9 @@ app.layout = html.Div(
                 html.Article(
                     className="kpi-card",
                     children=[
-                        html.Span("Années", className="kpi-label"),
+                        html.Span("Editions", className="kpi-label"),
                         html.H2(str(n_years), className="kpi-value"),
-                        html.P("Années couvertes", className="kpi-note"),
+                        html.P("Editions couvertes", className="kpi-note"),
                     ],
                 ),
                 html.Article(
