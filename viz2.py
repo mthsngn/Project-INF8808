@@ -596,6 +596,10 @@ def create_viz2_layout(prefix: str = "viz2") -> html.Section:
                             },
                                 style={"height": "460px"},
                             ),
+                            html.P(
+                                " Diagramme à barres empilées montrant le nombre de médailles d’or, d’argent et de bronze obtenues par pays depuis la création des Jeux olympiques d’hiver. Le graphique permet de comparer les pays les plus médaillés et la répartition des types de médailles.",
+                                className="alt-text-note",
+                            ),
                         ],
                     ),
 
@@ -621,6 +625,10 @@ def create_viz2_layout(prefix: str = "viz2") -> html.Section:
                                         id=_id(prefix, "map"),
                                         config={"displayModeBar": False},
                                         style={"height": "500px"},
+                                    ),
+                                    html.P(
+                                        " Carte mondiale colorée représentant la répartition des médailles par continent ou pays. Les couleurs indiquent le volume de médailles, ce qui permet de repérer rapidement les régions les plus représentées dans les médaillé des jeux olympiques d’hiver.",
+                                        className="alt-text-note",
                                     ),
                                     # Bouton retour en overlay haut-droite de la carte
                                     html.Button(
