@@ -310,6 +310,12 @@ body {
 .viz-card-map .plot-zone {
   min-height: 500px;
 }
+.alt-text-note {
+  margin-top: 10px;
+  font-size: 0.9rem;
+  color: #5b6472;
+  line-height: 1.5;
+}
 
 /* PLOT ZONES  */
 
