@@ -575,6 +575,10 @@ def create_viz1_layout(prefix: str = "viz1") -> html.Section:
                                 config={"displayModeBar": False},
                                 style={"height": "420px"},
                             ),
+                            html.P(
+                                " Diagramme en boîte montrant la distribution de la variable sélectionnée (âge, taille ou poids) selon les disciplines affichées. Le graphique permet de comparer les valeurs médianes, la dispersion et les valeurs extrêmes entre les disciplines, en fonction des filtres choisis pour le sexe et les médailles.",
+                                className="alt-text-note",
+                            ),
                         ],
                     ),
                     html.Article(
@@ -591,6 +595,10 @@ def create_viz1_layout(prefix: str = "viz1") -> html.Section:
                                 id=_id(prefix, "scatter"),
                                 config={"displayModeBar": False},
                                 style={"height": "420px"},
+                            ),
+                            html.P(
+                                " Nuage de points montrant la relation entre la taille et le poids des athlètes selon les filtres sélectionnés. Chaque point représente un athlète, et les couleurs indiquent le type de médaille obtenue : or, argent, bronze ou aucune médaille. Le graphique permet d’observer les regroupements selon le sport et les médailles.",
+                                className="alt-text-note",
                             ),
                         ],
                     ),
@@ -614,6 +622,10 @@ def create_viz1_layout(prefix: str = "viz1") -> html.Section:
                                 id=_id(prefix, "trend"),
                                 config={"scrollZoom": True, "displayModeBar": False},
                                 style={"height": "380px"},
+                            ),
+                            html.P(
+                                " Graphique en lignes montrant l’évolution de la moyenne de la variable sélectionnée (âge, taille ou poids) pour chaque édition des Jeux olympiques d’hiver. Les lignes comparent les différentes disciplines et permettent d’observer les variations dans le temps selon les filtres choisis (sexe et médaille).",
+                                className="alt-text-note",
                             ),
                         ],
                     )
